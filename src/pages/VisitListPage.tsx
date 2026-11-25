@@ -146,6 +146,18 @@ export default function VisitListPage() {
                     {draft && <Badge tone="blue">本机草稿 · 基线 rev {draft.baseRev}</Badge>}
                     {blocked && <Badge tone="red">同步被守卫拦截</Badge>}
                     {c.referrals.length > 0 && <Badge tone="purple">转介 {c.referrals.length}</Badge>}
+                    {c.transfer && (
+                      <>
+                        <Badge tone="amber">
+                          迁居移交 · {c.transfer.followUps.length > 0 ? '已定唯一责任' : '待定责任'}
+                        </Badge>
+                        {c.transfer.followUps.length > 0 && (
+                          <Badge tone="purple">
+                            责任 {c.transfer.followUps[0].ownerOrgId === c.transfer.originOrg.id ? '原机构' : '新机构'}
+                          </Badge>
+                        )}
+                      </>
+                    )}
                   </div>
                 </Link>
               );

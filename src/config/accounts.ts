@@ -9,6 +9,7 @@ export const ACCOUNTS: Actor[] = [
     name: '林晓',
     title: '社工 · 第三网格',
     role: 'social_worker',
+    orgId: 'org-qinghe',
   },
   {
     id: 'zhou',
@@ -17,6 +18,7 @@ export const ACCOUNTS: Actor[] = [
     name: '周明',
     title: '社工 · 第二网格',
     role: 'social_worker',
+    orgId: 'org-qinghe',
   },
   {
     id: 'wang',
@@ -25,6 +27,16 @@ export const ACCOUNTS: Actor[] = [
     name: '王敏',
     title: '服务主管',
     role: 'supervisor',
+    orgId: 'org-qinghe',
+  },
+  {
+    id: 'sun',
+    account: 'sun.li',
+    password: 'test1234',
+    name: '孙丽',
+    title: '社工 · 新桥第七网格',
+    role: 'social_worker',
+    orgId: 'org-xinqiao',
   },
 ];
 

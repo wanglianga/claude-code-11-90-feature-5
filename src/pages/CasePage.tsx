@@ -8,6 +8,7 @@ import VisitTab from '../components/case/VisitTab';
 import GoalsTab from '../components/case/GoalsTab';
 import AppointmentsTab from '../components/case/AppointmentsTab';
 import ReferralsTab from '../components/case/ReferralsTab';
+import TransferTab from '../components/case/TransferTab';
 import SyncTab from '../components/case/SyncTab';
 import type { Violation } from '../types';
 
@@ -17,6 +18,7 @@ const TABS = [
   { key: 'goals', label: '目标与计划' },
   { key: 'appts', label: '预约管理' },
   { key: 'refs', label: '转介与提醒' },
+  { key: 'transfer', label: '迁居移交' },
   { key: 'sync', label: '同步记录' },
 ] as const;
 
@@ -93,7 +95,18 @@ export default function CasePage() {
               {remote.client.risk}
             </Badge>
           </h1>
-          <div className="page-sub">{remote.client.district}</div>
+          <div className="page-sub">
+            {remote.client.district}
+            {remote.transfer && (
+              <>
+                {' · 迁居移交自 '}
+                {remote.transfer.originOrg.name}
+                {'（迁入日 '}
+                {remote.transfer.moveInDate}
+                {'）'}
+              </>
+            )}
+          </div>
         </div>
         <div className="head-actions">
           <span className="rev-chip base">
@@ -194,6 +207,7 @@ export default function CasePage() {
         {tab === 'goals' && <GoalsTab caseId={caseId} value={value} />}
         {tab === 'appts' && <AppointmentsTab caseId={caseId} value={value} />}
         {tab === 'refs' && <ReferralsTab caseId={caseId} value={value} />}
+        {tab === 'transfer' && <TransferTab caseId={caseId} value={value} />}
         {tab === 'sync' && <SyncTab caseId={caseId} />}
       </div>
 

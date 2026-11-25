@@ -1,4 +1,5 @@
 import type { CaseFile, FieldGrant, Violation } from '../types';
+import { validateTransfer } from './transfer';
 
 export interface RuleContext {
   /** 最新远端案卷（用于识别“远端已取消/已退回”） */
@@ -152,6 +153,11 @@ export function validateCandidate(candidate: CaseFile, ctx: RuleContext = {}): V
         });
       }
     }
+  }
+
+  // 4) 迁居移交不变量（仅当案卷带有 transfer 时生效）
+  if (candidate.transfer) {
+    violations.push(...validateTransfer(candidate, { previous: current ?? null }));
   }
 
   return violations;

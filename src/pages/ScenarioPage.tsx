@@ -7,8 +7,10 @@ import { analyzeMerge } from '../lib/merge';
 import { formatValue } from '../lib/labels';
 import { grantState } from '../lib/rules';
 import RestrictedContact from '../components/RestrictedContact';
+import { comparePolicies, timelineOf, type ReplayResult } from '../lib/transferFlow';
+import { fullTime } from '../lib/time';
 
-type SampleKey = 'merge' | 'cancel' | 'grant';
+type SampleKey = 'merge' | 'cancel' | 'grant' | 'transfer';
 
 export default function ScenarioPage() {
   const [sample, setSample] = useState<SampleKey>('merge');
@@ -31,6 +33,9 @@ export default function ScenarioPage() {
           <button className="btn" onClick={() => window.open(`${location.pathname}?as=wang#/supervisor`, '_blank')}>
             开主管标签 · 王敏
           </button>
+          <button className="btn" onClick={() => window.open(`${location.pathname}?as=sun#/case/case-c21`, '_blank')}>
+            开新机构标签 · 孙丽
+          </button>
         </div>
       </div>
 
@@ -40,6 +45,7 @@ export default function ScenarioPage() {
             ['merge', '① 9:00 rev7 协作合并样例'],
             ['cancel', '② 预约取消 × 迟到签到'],
             ['grant', '③ 撤权与授权到期'],
+            ['transfer', '④ 迁居移交 × 唯一跟进责任（C-21）'],
           ] as [SampleKey, string][]
         ).map(([k, label]) => (
           <button
@@ -57,6 +63,7 @@ export default function ScenarioPage() {
       {sample === 'merge' && <MergeSample />}
       {sample === 'cancel' && <CancelSample />}
       {sample === 'grant' && <GrantSample />}
+      {sample === 'transfer' && <TransferSample />}
     </>
   );
 }
@@ -671,6 +678,162 @@ function GrantSample() {
           边界承诺：系统不声称能即时擦除一台离线设备。撤权消息只能到达在线标签；离线设备的暴露窗口由短时效、
           明确 <code>expiresAt</code> 的凭据约束，到期后本地强制清除。
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ================= 样例四：迁居移交 × 唯一跟进责任 ================= */
+
+function TransferSample() {
+  const app = useApp();
+  const navigate = useNavigate();
+  const [policy, setPolicy] = useState<'origin_keeps' | 'transfer_on_move_in'>('origin_keeps');
+  const [busy, setBusy] = useState(false);
+
+  const both = useMemo(() => comparePolicies(), []);
+  const current: ReplayResult = policy === 'origin_keeps' ? both.originKeeps : both.transferOnMoveIn;
+  const other: ReplayResult = policy === 'origin_keeps' ? both.transferOnMoveIn : both.originKeeps;
+  const timeline = useMemo(() => timelineOf(current), [current]);
+  const allOk = current.checks.every((c) => c.ok) && current.violations.length === 0;
+
+  function openCase() {
+    setBusy(true);
+    try {
+      app.loginAs('lin');
+      navigate('/case/case-c21');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="transfer-sample">
+      <div className="card">
+        <div className="card-hd">
+          <h3>样例 C-21 · 长者迁居后的唯一跟进责任</h3>
+          <span className="flex">
+            <button className="btn btn-sm" onClick={() => setPolicy('origin_keeps')} aria-pressed={policy === 'origin_keeps'}>
+              按原机构续办回放
+            </button>
+            <button className="btn btn-sm" onClick={() => setPolicy('transfer_on_move_in')} aria-pressed={policy === 'transfer_on_move_in'}>
+              按迁入日转给新机构回放
+            </button>
+            <button className="btn btn-sm btn-primary" onClick={openCase} disabled={busy}>
+              打开 C-21 个案页
+            </button>
+          </span>
+        </div>
+        <div className="card-bd small">
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            <li>C-21（卢凤仪，84 岁）于 <b>2026-06-01</b> 迁入新桥街道；已有两条完成家访 <code>05-18 / 05-26</code>，以及 <b>06-03</b> 预约。</li>
+            <li>转介 <b>RH-4</b> 于 <b>05-28</b> 送往康复服务方，要求 <b>06-05</b> 前补齐行动能力评估。</li>
+            <li>服务方 <b>06-02 10:00</b> 退回：缺少评估；原社工 <b>05-31</b> 的一条客户联系因离线到 <b>06-03</b> 才同步。</li>
+            <li>客户优先希望熟悉的原社工说明材料，但同意责任转交后由新机构社工接续。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div className="grid-2">
+        <section className="card">
+          <div className="card-hd">
+            <h3>逐步回放 · {policy === 'origin_keeps' ? '原机构续办' : '迁入日转给新机构'}</h3>
+            <Badge tone={allOk ? 'green' : 'red'}>{allOk ? '全部核对通过' : '存在异常'}</Badge>
+          </div>
+          <div className="card-bd">
+            {current.steps.map((s, i) => (
+              <div key={s.key} className={`script-step ${i === current.steps.length - 1 ? 'active' : 'done'}`}>
+                <span className="step-num">{i + 1}</span>
+                <b>{s.title}</b>
+                <div className="small muted">{s.detail}</div>
+                <div className="small muted">业务时间 {fullTime(s.at)}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="card">
+          <div className="card-hd">
+            <h3>核对项（唯一责任 · 任务 · 客户通知 · 补齐 · 迟到记录）</h3>
+          </div>
+          <div className="card-bd">
+            <ul className="check-list">
+              {current.checks.map((c) => (
+                <li key={c.key} className={c.ok ? 'ok' : 'bad'}>
+                  <span className="check-icon" aria-hidden>
+                    {c.ok ? '✓' : '✕'}
+                  </span>
+                  <div>
+                    <b>{c.label}</b>
+                    <div className="small muted">{c.value}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            {current.violations.length > 0 && (
+              <div className="banner error mt8" style={{ marginBottom: 0 }}>
+                不变量拦截：{current.violations.map((v) => v.title).join('；')}
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+
+      <div className="grid-2">
+        <section className="card">
+          <div className="card-hd">
+            <h3>同一转介时间线（服务方回执 + 客户联系 + 责任归属）</h3>
+            <Badge tone="purple">{timeline.length} 条</Badge>
+          </div>
+          <div className="card-bd">
+            <ul className="timeline">
+              {timeline.map((e) => (
+                <li key={e.id} className={e.lateSync ? 'role-sync-engine' : e.kind === 'provider_return' ? 'role-system' : ''}>
+                  <div className="audit-summary">
+                    {e.summary}
+                    {e.lateSync && <Badge tone="amber">迟到同步</Badge>}
+                  </div>
+                  <div className="audit-meta">
+                    <span>业务时间 {fullTime(e.at)}</span>
+                    {e.recordedAt && <span>落库 {fullTime(e.recordedAt)}</span>}
+                    <span>{e.orgId}</span>
+                    <span>{e.actorName}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        <section className="card">
+          <div className="card-hd">
+            <h3>另一种方式并排对照 · {other.policy === 'origin_keeps' ? '原机构续办' : '迁入日转给新机构'}</h3>
+          </div>
+          <div className="card-bd">
+            <p className="small">
+              {other.policy === 'origin_keeps'
+                ? '责任留在原机构：熟悉情况的社工继续与客户和服务方沟通，直至服务方接收或明确拒绝。代价是跨区后的原团队仍要承担后续催办。'
+                : '迁入日转给新机构：符合本地服务归口，客户只与一个机构对接；代价是新团队必须接续既有沟通，原团队立即停止联系。'}
+            </p>
+            <ul className="check-list compact">
+              {other.checks.map((c) => (
+                <li key={c.key} className={c.ok ? 'ok' : 'bad'}>
+                  <span className="check-icon" aria-hidden>
+                    {c.ok ? '✓' : '✕'}
+                  </span>
+                  <div>
+                    <b>{c.label}</b>
+                    <div className="small muted">{c.value}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="banner info mt8" style={{ marginBottom: 0 }}>
+              两种方式都保证：截止 06-05 前有人处理、任何时刻只有一个机构能发起客户/服务方联系、05-18 与 05-26
+              已完成家访的历史归属不变；重复送达同一退回回执只生成一次催办。
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   );

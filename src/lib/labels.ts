@@ -61,6 +61,30 @@ const FIELD_LABELS: Record<string, string> = {
   sourceRecordId: '来源记录',
   rev: '版本',
   updatedAt: '更新时间',
+  // 迁居移交 / 转介跟进
+  applicationNo: '原申请编号',
+  submittedMaterials: '已提交材料',
+  shareSummary: '机构可见摘要',
+  providerDecision: '服务方回执结论',
+  providerReturn: '服务方退回',
+  providerReturn_reason: '退回原因',
+  providerReturn_supplementDue: '补齐截止日',
+  providerReturn_missingMaterials: '缺少材料',
+  providerAcceptedAt: '接收回执时间',
+  followUpDue: '送件时约定期限',
+  timeline: '转介时间线',
+  transfer: '迁居移交',
+  followUps: '跟进责任',
+  tasks: '跟进任务',
+  ownerOrgId: '责任机构',
+  nextAction: '下一动作',
+  nextContactDue: '下一次联系期限',
+  nextContactNote: '下一次联系说明',
+  clientNotified: '客户已获告知',
+  clientNotifiedBy: '告知机构',
+  clientNotifiedAt: '告知时间',
+  attributedOrgId: '完成机构',
+  attributedOrgName: '完成机构名称',
 };
 
 const COLLECTION_LABELS: Record<string, string> = {
@@ -71,6 +95,7 @@ const COLLECTION_LABELS: Record<string, string> = {
   referrals: '转介',
   reminders: '提醒',
   plan: '服务计划',
+  transfer: '移交',
 };
 
 export function pathLabel(path: string): string {
@@ -120,6 +145,16 @@ const ENUM_LABELS: Record<string, string> = {
   incomplete: '未能完成',
   none: '正常',
   pending_verification: '待核材料',
+  已退回补件: '已退回补件',
+  origin_keeps: '原机构续办',
+  transfer_on_move_in: '迁入日转给新机构',
+  accepted: '服务方已接收',
+  declined: '服务方明确拒绝',
+  contact_provider: '联系服务方',
+  contact_client: '联系客户',
+  supplement_due: '补齐材料并催办',
+  provider_contact: '联系服务方记录',
+  client_contact: '客户联系记录',
 };
 
 const DATE_FIELDS = new Set([

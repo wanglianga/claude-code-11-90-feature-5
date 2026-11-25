@@ -34,13 +34,25 @@ npm run preview    # http://localhost:4173
 
 ### 测试账号（密码统一为 `test1234`）
 
-| 账号 | 姓名 | 角色 |
-| --- | --- | --- |
-| `lin.xiao` | 林晓 | 社工（样例中的 A，第三网格） |
-| `zhou.ming` | 周明 | 社工（样例中的 B，第二网格） |
-| `wang.min` | 王敏 | 主管 |
+| 账号 | 姓名 | 角色 | 所属机构 |
+| --- | --- | --- | --- |
+| `lin.xiao` | 林晓 | 社工（样例中的 A，第三网格） | 清河街道综合服务中心 |
+| `zhou.ming` | 周明 | 社工（样例中的 B，第二网格） | 清河街道综合服务中心 |
+| `wang.min` | 王敏 | 主管 | 清河街道综合服务中心 |
+| `sun.li` | 孙丽 | 社工（新桥第七网格） | 新桥街道综合服务中心（接收机构） |
 
-登录页可直接点账号卡片填充。URL 支持 `?as=lin|zhou|wang` 直达登录，便于双标签脚本。
+登录页可直接点账号卡片填充。URL 支持 `?as=lin|zhou|wang|sun` 直达登录，便于双标签脚本。
+
+```bash
+# 本地一键验证（开发依赖已装好后）
+npm test          # 7 个测试文件 / 41 个用例
+npx tsc --noEmit  # 0 error
+npm run build     # 产出 dist/，可 npm run preview 在 4173 查看
+```
+
+样例数据基线：陈桂兰案卷 rev 7（2026-11-25 9:00）；迁居移交样例 **C-21**（卢凤仪，2026-06-01 迁入）。
+`?as=sun` 为新机构社工孙丽，便于演练“迁入日转给新机构”后的唯一责任归属。
+C-21 的两种处理方式均在「样例演练 → ④ 迁居移交」与个案页「迁居移交」标签内回放。
 
 ---
 
@@ -65,8 +77,14 @@ npm run preview    # http://localhost:4173
 | 离线无法即时知道撤权；缓存绑定明确到期时刻，到期离线也遮蔽并清除 | `SensitiveCacheEntry{grantId,expiresAt}`；主线程 5s + `sync.worker.ts` 4s 清扫 `expiresAt<=now`；界面秒级遮蔽；UI 明确“不承诺即时远程擦除” |
 | WebWorker | `src/workers/sync.worker.ts`：后台三方合并 + 到期缓存清扫；主线程客户端 `src/workers/client.ts`（Worker 失败时回退主线程计算） |
 | 键盘操作 / 焦点提示 / 窄窗覆盖冲突全程 | 原生 radio/button/input（方向键切换单选项）、可见焦点框、跳转链接、焦点陷阱 Modal、“定位第一个未决项并聚焦”、aria-live；≤860px 三列堆叠并显示列名，另有“窄窗布局预览”按钮 |
-| 虚构个案/预约/转介 | `src/data/seed.ts`：陈桂兰（核心样例）、梁广生、吴小梅家庭、赵德海、何丽娟，含预约、目标、家访、转介、提醒、计划 |
-| 两个标签页间重放同步的模拟接口 | 共享远端 IndexedDB + `BroadcastChannel`；样例页提供 A/B/主管三个 `?as=` 直达新标签按钮 |
+| 虚构个案/预约/转介 | `src/data/seed.ts`：陈桂兰（核心样例）、梁广生、吴小梅家庭、赵德海、何丽娟、卢凤仪 C-21（迁居移交样例），含预约、目标、家访、转介、提醒、计划 |
+| 两个标签页间重放同步的模拟接口 | 共享远端 IndexedDB + `BroadcastChannel`；样例页提供 A/B/主管/新机构四个 `?as=` 直达新标签按钮 |
+| **迁居移交：未结转介的唯一跟进责任** | `src/lib/transfer.ts` + 「迁居移交」标签：每项未结转介唯一 owner（两种合规方式），记录原申请编号、已提交材料、服务方回执、下一次联系期限、客户告知与当前责任人 |
+| **原机构续办 / 迁入日转交 两种回放** | `src/lib/transferFlow.ts` + 样例页「④ 迁居移交 × 唯一跟进责任（C-21）」：逐步回放两种方式，核对唯一责任人、下一次联系任务、客户通知、补齐截止日、迟到记录归属 |
+| **重复回执不产生第二次催办** | 幂等键 `return:<referralId>:<referenceNo>`；重复送达只追加“去重痕迹”，不新增任务 |
+| **旧机构迟到同步不得夺权或结案** | `replayLateSync` 只归档并标记 `lateSync`；`validateTransfer` 拦截 `TRANSFER_LATE_SYNC_USURPS` / `TRANSFER_CLOSE_WITH_OPEN_REFERRAL` |
+| **交接不改变已完成家访历史归属** | `attributedOrgId` + `transfer.historyAttribution` 冻结；篡改触发 `TRANSFER_HISTORY_REATTRIBUTED` |
+| **跨机构仅见授权范围内必要摘要** | `transfer.orgScopes` + `summaryVisibleTo`；转介摘要与紧急联系人授权相互独立，完整客户联系记录不跨机构暴露 |
 
 ---
 
@@ -108,7 +126,24 @@ npm run preview    # http://localhost:4173
 - 申请 30 分钟授权后点“模拟家属撤权”，或在第二个同账号标签中触发撤权：
   两个标签都会立即遮蔽并删除缓存，并尽力写空剪贴板；若浏览器拒绝剪贴板写，会明确提示手动处理。
 
-### 3.4 键盘与窄窗
+### 3.4 迁居移交 × 唯一跟进责任（C-21）
+
+两种方式都在「样例演练 → ④ 迁居移交 × 唯一跟进责任（C-21）」内一键回放，可在个案页
+`#/case/case-c21` →「迁居移交」标签手工操作同一套规则：
+
+1. 在移交面板选择 **原机构续办** 或 **迁入日转给新机构**，填写“客户已获告知的内容”，
+   点“确认移交方式并写入唯一跟进责任”。面板显示责任机构、责任人、下一动作、下一次联系期限
+   （C-21 为送件时要求的 `2026-06-05`，收到 06-02 退回后仍以该补齐截止日为准）与责任转移次数。
+2. 点“模拟服务方 06-02 10:00 退回（缺行动能力评估）”：生成 **一条** 补齐/催办任务，
+   数据写入同一转介时间线；再点“重复送达同一退回回执”：只追加去重痕迹，任务仍是一条。
+3. 点“补传原机构 05-31 离线客户联系”：归档为“迟到同步”，责任归属与“已退回补件”状态都不变。
+4. 点“尝试把 RH-4 标成‘已办结’”：显示守卫拦截说明——服务方最终回执前不得结案。
+5. 在“记录客户联系”输入内容并保存：只有当前唯一责任机构可写入；迁入日转交后原机构会被拒绝
+   （提示责任在新机构）。用 `?as=sun` 打开新机构标签可在另一标签扮演孙丽。
+6. 对照样例页内两张核对表：唯一责任人、下一次联系任务、客户通知、补齐截止日、迟到记录归属、
+   历史家访归属；两种方式全部通过，且 05-18 / 05-26 两条完成家访始终归属清河街道。
+
+### 3.5 键盘与窄窗
 
 - 冲突页所有操作均为原生控件：`Tab/Shift+Tab` 移动，radio 组内 `↑↓/←→` 切换；
   未决项横幅按钮可把焦点直接送到第一个待裁决卡片。
@@ -122,7 +157,7 @@ npm run preview    # http://localhost:4173
 
 ```bash
 npm test
-# Test Files  6 passed (6)，Tests 17 passed (17)
+# Test Files  7 passed (7)，Tests 41 passed (41)
 ```
 
 覆盖：
@@ -137,7 +172,14 @@ npm test
 - `test/flow.test.tsx`：jsdom + Testing Library 真实渲染 `<AppProviders/>`，
   跑通 登录→清单→个案登记→远端 rev9→快速同步跳冲突中心→选本地关联组→
   未补事实时提交禁用→补 `supplementNote`→提交并出现“已提交为 rev 10”；
-- `test/pages-smoke.test.tsx`：主管/审计/样例/个案各 tab 渲染冒烟、授权申请显示真值。
+- `test/pages-smoke.test.tsx`：主管/审计/样例/个案各 tab 渲染冒烟、授权申请显示真值，
+  以及 C-21「迁居移交」面板：写入唯一责任 → 服务方退回生成单条任务 → 重复回执不新增催办；
+- `test/transfer.test.ts`（22 例）：两种移交方式的唯一责任、下一次联系期限 ≤ 补齐截止日、
+  原机构续办可联系/转交后原机构被拒、退回幂等（同一回执仅一条任务）、重复送达只追加去重痕迹、
+  服务方接收后关闭催办、迟到同步只归档不夺权不结案、已完成家访历史归属冻结与篡改拦截、
+  双 owner/模式不匹配/任务持有机构与责任不一致/非责任机构发起联系/服务方回执前结案等不变量，
+  先回执后确定移交方式时任务随责任改派、跨机构摘要裁剪（服务方只能见摘要，客户联系内容仅授权机构可读），
+  以及两种方式回放全核对通过。
 
 其余实际执行的验证：
 
@@ -164,7 +206,9 @@ src/
   lib/
     paths.ts               文档扁平化 / 按 id 数组寻址 / setPath 补元素
     merge.ts               三方分析、两类粒度裁决项、候选构造、暂缓 rebase
-    rules.ts               预约取消、退回锁、履约事实、授权守卫（前后端共用）
+    rules.ts               预约取消、退回锁、履约事实、授权守卫（前后端共用，含移交不变量入口）
+    transfer.ts            迁居移交：唯一跟进责任、回执幂等、迟到同步归档、结案与归属守卫、摘要裁剪
+    transferFlow.ts        C-21 两种移交方式的确定性回放与核对表（场景页/测试共用）
     audit.ts               审计条目 SHA-256 截断指纹
     labels.ts/time.ts      中文标签、枚举、时间与倒计时
   db/
@@ -178,9 +222,9 @@ src/
     sync.worker.ts         Worker：merge 计算 + 敏感缓存到期清扫
     client.ts              Worker 单例与回退
   state/AppStore.tsx       全局状态、会话、在线态、草稿/outbox/密钥/presence/提交编排
-  components/ ...          顶栏外的业务组件与 case/* 标签页
+  components/ ...          顶栏外的业务组件与 case/* 标签页（含 TransferTab 迁居移交）
   pages/ ...               Login / VisitList / Case / Conflict / Supervisor / Audit / Scenario
-test/                      6 个测试文件（17 个用例）
+test/                      7 个测试文件（41 个用例）
 Dockerfile docker-compose.yml nginx.conf
 ```
 
@@ -203,3 +247,19 @@ Dockerfile docker-compose.yml nginx.conf
 - 真值只写入 `sensitive` store，记录 `grantId/expiresAt`；草稿 `CaseFile` 中该字段恒为 `null`。
 - 在线撤权：总线消息触发各标签清除；离线到期：不依赖网络，时间一到界面遮蔽、Worker/主线程删缓存。
 - 无法承诺对离线设备实现即时远程擦除——这是题目明确要求保留的现实边界。
+
+### 迁居移交语义（为什么客户不会收到重复询问）
+
+1. `CaseTransfer.followUps` 对每项未结束转介保存**唯一** owner，且 `policy` 只能是
+   `origin_keeps`（责任留原机构直到服务方接收/明确拒绝）或 `transfer_on_move_in`（迁入日起归新机构）。
+2. `canContact()` 在写联系记录前按机构裁决；`validateTransfer()` 再拦截
+   `TRANSFER_DUAL_OWNER` / `TRANSFER_CONTACT_BY_NON_OWNER` / `TRANSFER_OWNER_MISMATCH`，
+   保证任何时刻只有一个机构能发起客户或服务方联系。
+3. 服务方回执以 `return:<referralId>:<referenceNo>` 幂等：同一退回重复送达只追加去重痕迹，
+   不新增第二条补齐/催办任务，下一次联系期限与补齐截止日保持一致。
+4. `replayLateSync()` 只把旧机构离线记录归档进同一转介时间线并标记 `lateSync`；
+   `TRANSFER_LATE_SYNC_USURPS` 确保它不能被用来夺回已转移的责任，`TRANSFER_CLOSE_WITH_OPEN_REFERRAL`
+   确保服务方最终回执前不能把转介标成已办结。
+5. 已完成家访的 `attributedOrgId` 与 `historyAttribution` 在移交时冻结，
+   `TRANSFER_HISTORY_REATTRIBUTED` 拦截任何改写；06-03 的未完成预约随计划转给新机构。
+6. `transfer.orgScopes` 约定双方仅能查看被授权的必要摘要；全套转介时间线与完整客户联系记录不跨机构暴露。

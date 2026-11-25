@@ -30,8 +30,15 @@ export function StatusBadge({ value }: { value: string }) {
     pending_verification: 'purple',
     草稿: 'gray',
     已发出: 'blue',
+    已退回补件: 'red',
     已接收回执: 'purple',
     已办结: 'green',
+    provider_contact: 'blue',
+    client_contact: 'blue',
+    supplement_due: 'amber',
+    done: 'green',
+    open: 'amber',
+    superseded: 'gray',
   };
   return <Badge tone={map[value] ?? 'gray'}>{enumLabel(value)}</Badge>;
 }

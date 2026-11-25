@@ -1,6 +1,5 @@
 import type { Actor, AuditEntry, CaseFile } from '../types';
 import { iso } from '../lib/time';
-
 // 所有居民、机构、电话均为虚构，仅用于浏览器内演示。
 // 标准样例日：2026-11-25（周三）。
 
@@ -10,7 +9,7 @@ const T = {
 };
 
 export function seedCases(): CaseFile[] {
-  return [chenCase(), liangCase(), wuCase(), zhaoCase(), heCase()];
+  return [chenCase(), liangCase(), wuCase(), zhaoCase(), heCase(), c21Case()];
 }
 
 /** 题目指定的核心样例：9:00 两标签页共同读取的版本 7 */
@@ -350,6 +349,202 @@ function baseCase(a: BaseArgs): CaseFile {
     referrals: [],
     reminders: [],
     plan: [],
+  };
+}
+
+/*
+ * 样例个案 C-21：长者迁居移交。
+ * 2026-06-01 迁入新桥街道（新机构），已有两条完成家访（05-18、05-26）与 06-03 预约；
+ * 转介 RH-4 于 05-28 送往康复服务方，要求 06-05 前补齐行动能力评估。
+ * 服务方 06-02 10:00 退回缺评估；原社工 05-31 一条客户联系记录离线，至 06-03 才补传。
+ * 该案卷初始仅记录“移交事实”，尚未决定移交方式（两种方式由场景页/移交面板分别回放）。
+ */
+export function c21Case(): CaseFile {
+  const originOrg = {
+    id: 'org-qinghe',
+    name: '清河街道综合服务中心',
+    kind: 'origin' as const,
+    district: '清河街道',
+  };
+  const receivingOrg = {
+    id: 'org-xinqiao',
+    name: '新桥街道综合服务中心',
+    kind: 'receiving' as const,
+    district: '新桥街道',
+  };
+  const providerOrg = {
+    id: 'org-rehab',
+    name: '区康复服务指导中心',
+    kind: 'provider' as const,
+  };
+  return {
+    id: 'case-c21',
+    rev: 3,
+    updatedAt: new Date(iso(2026, 6, 3, 9, 10)).getTime(),
+    client: {
+      id: 'cl-c21',
+      code: 'C-21',
+      name: '卢凤仪',
+      age: 84,
+      gender: '女',
+      district: '新桥街道 · 第七网格（2026-06-01 自清河街道迁入）',
+      address: '新桥里 3 号院 2 单元 104（虚构地址）',
+      risk: '重点关注',
+      household: '迁居后与女儿同住；日常由女儿协助服药',
+      background:
+        '高血压、行动能力下降；迁居前由清河街道随访。迁居后服务计划与预约已由新桥街道接收，转介 RH-4（行动能力评估）尚无服务方回执。',
+      emergencyContact: {
+        name: '赵敏（女儿）',
+        relation: '女儿（同住）',
+        phone: '137-0000-5521（虚构号码）',
+      },
+    },
+    appointments: [
+      {
+        id: 'c21-appt-0603',
+        label: '未来预约',
+        startAt: iso(2026, 6, 3, 10, 0),
+        durationMin: 50,
+        place: '新桥里 3 号院 2 单元 104（服务对象家中）',
+        status: 'scheduled',
+      },
+    ],
+    goals: [
+      {
+        id: 'c21-goal-mobility',
+        title: '维持居家行动能力与防跌倒',
+        criteria: '每周完成 3 次扶行训练；浴室防滑与夜灯到位；按时复诊。',
+        publishState: 'confirmed',
+      },
+    ],
+    visits: [
+      {
+        id: 'c21-visit-0518',
+        appointmentId: 'c21-appt-0518',
+        goalId: 'c21-goal-mobility',
+        serviceDate: '2026-05-18',
+        confirmedGoalText: '维持居家行动能力与防跌倒：核实扶行训练与浴室防滑。',
+        visibleScopes: ['基本档案', '居家环境评估', '服务计划'],
+        checkInAt: iso(2026, 5, 18, 9, 30),
+        checkOutAt: iso(2026, 5, 18, 10, 25),
+        serviceMinutes: 55,
+        observations: '浴室防滑垫已铺设；可在助行器辅助下于室内行走约 120 米，步速偏慢。',
+        actions: '现场演示扶行训练动作；与女儿确认每周三次训练安排。',
+        fulfillment: 'completed',
+        incompleteReasons: [],
+        incompleteNote: '',
+        supplementNote: '',
+        status: 'confirmed',
+        supervisorNote: '事实完整，确认进入服务计划。',
+        materialFlag: 'none',
+        bundledAppointmentId: null,
+        attributedOrgId: originOrg.id,
+        attributedOrgName: originOrg.name,
+      },
+      {
+        id: 'c21-visit-0526',
+        appointmentId: 'c21-appt-0526',
+        goalId: 'c21-goal-mobility',
+        serviceDate: '2026-05-26',
+        confirmedGoalText: '维持居家行动能力与防跌倒：复查训练与夜灯使用。',
+        visibleScopes: ['基本档案', '居家环境评估'],
+        checkInAt: iso(2026, 5, 26, 9, 35),
+        checkOutAt: iso(2026, 5, 26, 10, 20),
+        serviceMinutes: 45,
+        observations: '夜灯已安装；女儿反映近日右膝酸软，训练减少到每周一次，已建议转康复评估。',
+        actions: '记录训练频次；与服务对象商定转介康复服务方评估行动能力。',
+        fulfillment: 'completed',
+        incompleteReasons: [],
+        incompleteNote: '',
+        supplementNote: '',
+        status: 'confirmed',
+        supervisorNote: '同意转介康复服务方。',
+        materialFlag: 'none',
+        bundledAppointmentId: null,
+        attributedOrgId: originOrg.id,
+        attributedOrgName: originOrg.name,
+      },
+    ],
+    referrals: [
+      {
+        id: 'ref-rh4',
+        org: providerOrg.name,
+        service: '行动能力评估与居家康复计划',
+        reason: '右膝酸软、训练频次下降，需专业评估后制定训练方案',
+        status: '已发出',
+        applicationNo: 'RH-4',
+        submittedMaterials: ['家访记录 05-18', '家访记录 05-26', '用药清单', '女儿知情同意书'],
+        followUpDue: '2026-06-05',
+        shareSummary:
+          'RH-4：05-28 送康复服务方，要求 06-05 前补齐行动能力评估；已提交两条家访记录、用药清单与知情同意书。',
+        // 初始时间线只含已送出的申请；05-31 的客户联系仍离线，尚未补传（见 transfer.pendingOffline）
+        timeline: [
+          {
+            id: 'evt-rh4-sent',
+            referralId: 'ref-rh4',
+            at: iso(2026, 5, 28, 15, 0),
+            recordedAt: iso(2026, 5, 28, 15, 0),
+            orgId: originOrg.id,
+            actorName: '林晓',
+            kind: 'referral_sent',
+            summary: '原机构将 RH-4 送往区康复服务指导中心，附家访记录、用药清单与知情同意书。',
+          },
+        ],
+      },
+    ],
+    reminders: [
+      {
+        id: 'c21-rem-movein',
+        text: '迁居后首次家访：确认新住址环境与服药安排',
+        dueAt: iso(2026, 6, 3, 10, 0),
+        done: false,
+      },
+    ],
+    plan: [
+      {
+        id: 'c21-plan-1',
+        goalId: 'c21-goal-mobility',
+        text: '浴室防滑与夜灯已完成；每周三次扶行训练由女儿陪同（迁居前由清河街道确认）。',
+        ownerName: '林晓',
+        addedAt: new Date(iso(2026, 5, 18, 11, 0)).getTime(),
+        sourceRecordId: 'c21-visit-0518',
+        rev: 3,
+      },
+    ],
+    transfer: {
+      moveInDate: '2026-06-01',
+      originOrg,
+      receivingOrg,
+      planReceivedAt: iso(2026, 6, 1, 11, 0),
+      appointmentReceivedAt: iso(2026, 6, 1, 11, 20),
+      followUps: [],
+      tasks: [],
+      historyAttribution: {
+        'c21-visit-0518': originOrg.id,
+        'c21-visit-0526': originOrg.id,
+      },
+      clientPreference:
+        '客户优先希望由熟悉的原社工说明材料；但在责任转交后，同意由新机构社工接续沟通。',
+      orgScopes: {
+        [originOrg.id]: ['转介摘要', '家访历史'],
+        [receivingOrg.id]: ['转介摘要', '家访历史'],
+        [providerOrg.id]: ['转介摘要'],
+      },
+      pendingOffline: [
+        {
+          id: 'evt-rh4-contact-0531',
+          referralId: 'ref-rh4',
+          at: iso(2026, 5, 31, 16, 20),
+          recordedAt: iso(2026, 6, 3, 9, 5),
+          orgId: originOrg.id,
+          actorName: '林晓',
+          kind: 'client_contact',
+          lateSync: true,
+          summary:
+            '原社工向客户解释：服务方可能要求补做行动能力评估，补齐材料前不需要客户另行联系服务方。',
+        },
+      ],
+    },
   };
 }
 

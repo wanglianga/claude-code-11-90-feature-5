@@ -1455,3 +1455,94 @@ code,
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---------------- 迁居移交 / 唯一跟进责任 ---------------- */
+
+.transfer-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.transfer-orgrow {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.org-card {
+  flex: 1 1 240px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.org-card b {
+  font-size: 15px;
+}
+.org-arrow {
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  color: var(--teal-700);
+  font-weight: 700;
+}
+.transfer-wrap .kv {
+  grid-template-columns: 140px 1fr;
+}
+.mr {
+  margin-right: 14px;
+}
+.check-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.check-list li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  background: #fff;
+}
+.check-list li.ok {
+  border-color: #bbf7d0;
+  background: var(--green-50);
+}
+.check-list li.bad {
+  border-color: #fecaca;
+  background: var(--red-50);
+}
+.check-icon {
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.4;
+}
+.check-list li.ok .check-icon {
+  color: var(--green-700);
+}
+.check-list li.bad .check-icon {
+  color: var(--red-700);
+}
+.check-list.compact {
+  gap: 6px;
+}
+.transfer-sample .script-step {
+  margin-bottom: 10px;
+}
+.transfer-sample .tab-btn,
+.transfer-sample .card-hd .flex {
+  flex-wrap: wrap;
+}
+.transfer-badge {
+  border: 1px dashed var(--purple-700);
+  color: var(--purple-700);
+  background: var(--purple-50);
+}

@@ -10,6 +10,9 @@ export default function ReferralsTab({ caseId, value }: { caseId: string; value:
   const [org, setOrg] = useState('');
   const [service, setService] = useState('');
   const [reason, setReason] = useState('');
+  const transfer = value.transfer;
+  const fuOf = (id: string) => transfer?.followUps.find((f) => f.referralId === id);
+  const hasFinalReceipt = (status: string) => status === '已接收回执' || status === '已办结';
 
   async function addReferral(e: React.FormEvent) {
     e.preventDefault();
@@ -20,6 +23,7 @@ export default function ReferralsTab({ caseId, value }: { caseId: string; value:
       service: service.trim(),
       reason: reason.trim(),
       status: '草稿',
+      timeline: [],
     };
     await patchDraft(caseId, `新增转介：${ref.org}`, (doc) => {
       doc.referrals.push(ref);
@@ -36,6 +40,7 @@ export default function ReferralsTab({ caseId, value }: { caseId: string; value:
         <div className="banner info">
           ℹ️ 转介回执只表示机构接收/办结，<b>不会</b>自动把家访履约状态改为“已完成”，也不产生服务时长；
           主管确认时审计中也会注明这一点。
+          {transfer && ' 本案卷有迁居移交：转介回执请记录到「迁居移交」标签，以保留唯一责任、补齐截止日与时间线幂等。'}
         </div>
         <div className="card">
           <div className="card-hd">
@@ -43,43 +48,67 @@ export default function ReferralsTab({ caseId, value }: { caseId: string; value:
           </div>
           <div className="card-bd">
             {value.referrals.length === 0 && <p className="muted small">暂无转介。</p>}
-            {value.referrals.map((r) => (
-              <div key={r.id} className="entity">
-                <div className="entity-hd">
-                  <span className="entity-title">{r.org}</span>
-                  <StatusBadge value={r.status} />
-                </div>
-                <div className="small">
-                  <b>{r.service}</b> · {r.reason}
-                </div>
-                {r.receiptNo && (
-                  <div className="small mt8">
-                    <Badge tone="purple">回执 {r.receiptNo}</Badge>{' '}
-                    {r.receiptAt ? fullTime(r.receiptAt) : ''}
+            {value.referrals.map((r) => {
+              const fu = fuOf(r.id);
+              return (
+                <div key={r.id} className="entity">
+                  <div className="entity-hd">
+                    <span className="entity-title">{r.org}</span>
+                    <StatusBadge value={r.status} />
                   </div>
-                )}
-                <div className="flex mt8">
-                  {r.status !== '已接收回执' && r.status !== '已办结' && (
-                    <button
-                      className="btn btn-sm"
-                      onClick={() =>
-                        patchDraft(caseId, `登记转介回执 ${r.id}`, (doc) => {
-                          const x = doc.referrals.find((y) => y.id === r.id);
-                          if (x) {
-                            x.status = '已接收回执';
-                            x.receiptNo = `HZ-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-                            x.receiptAt = new Date().toISOString();
-                          }
-                        })
-                      }
-                    >
-                      模拟收到回执
-                    </button>
+                  <div className="small">
+                    <b>{r.service}</b> · {r.reason}
+                  </div>
+                  {r.applicationNo && (
+                    <div className="small mt8">
+                      <Badge tone="blue">申请 {r.applicationNo}</Badge>
+                      {r.providerReturn && (
+                        <Badge tone="red">
+                          补齐截止 {r.providerReturn.supplementDue}
+                        </Badge>
+                      )}
+                    </div>
                   )}
-                  <span className="small muted">点击后请注意：履约状态保持不变。</span>
+                  {r.receiptNo && (
+                    <div className="small mt8">
+                      <Badge tone="purple">回执 {r.receiptNo}</Badge>{' '}
+                      {r.receiptAt ? fullTime(r.receiptAt) : ''}
+                    </div>
+                  )}
+                  {fu && (
+                    <div className="small mt8">
+                      <Badge tone="amber">
+                        唯一责任：{fu.ownerName} · 下次联系 {fu.nextContactDue}
+                      </Badge>
+                    </div>
+                  )}
+                  <div className="flex mt8">
+                    {!transfer && !hasFinalReceipt(r.status) && (
+                      <button
+                        className="btn btn-sm"
+                        onClick={() =>
+                          patchDraft(caseId, `登记转介回执 ${r.id}`, (doc) => {
+                            const x = doc.referrals.find((y) => y.id === r.id);
+                            if (x) {
+                              x.status = '已接收回执';
+                              x.receiptNo = `HZ-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+                              x.receiptAt = new Date().toISOString();
+                            }
+                          })
+                        }
+                      >
+                        模拟收到回执
+                      </button>
+                    )}
+                    <span className="small muted">
+                      {transfer
+                        ? '迁居移交个案：回执与服务方退回请在「迁居移交」标签登记。'
+                        : '点击后请注意：履约状态保持不变。'}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             <form onSubmit={addReferral} className="mt16" aria-label="新增转介">
               <h4>新增转介（虚构机构）</h4>

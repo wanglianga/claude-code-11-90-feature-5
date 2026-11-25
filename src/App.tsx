@@ -29,7 +29,7 @@ function Boot() {
   const navigate = useNavigate();
   useEffect(() => {
     const as = new URLSearchParams(window.location.search).get('as');
-    if (as && ['lin', 'zhou', 'wang'].includes(as)) loginAs(as);
+    if (as && ['lin', 'zhou', 'wang', 'sun'].includes(as)) loginAs(as);
   }, [loginAs]);
   useEffect(() => {
     if (actor && window.location.hash === '' ) {
